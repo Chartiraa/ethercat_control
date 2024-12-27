@@ -303,6 +303,9 @@ class MotorManager:
         params["R0.30_System_State"] = safe_read(
             self._read_sdo_16bit_signed, slave_index, 0x301E, 0x00, param_name="R0.30_System_State"
         )
+        params["R3.0"] = safe_read(
+            self._read_sdo_16bit_signed, slave_index, 0x3111, 0x00, param_name="R3.0"
+        )
 
         # Hataları yazdır
         for param_name, error_msg in errors:

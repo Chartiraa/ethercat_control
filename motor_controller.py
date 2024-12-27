@@ -7,7 +7,7 @@ motor_manager = None  # Burada global tanımlıyoruz, try/except ile init edece�
 def init_motor_manager():
     global motor_manager
     try:
-        motor_manager = MotorManager(interface_name='en5')
+        motor_manager = MotorManager(interface_name='enp3s0')
         motor_manager.initialize()
     except Exception as e:
         print(f"Error initializing EtherCAT network: {e}")
@@ -75,6 +75,9 @@ def poll_data(root):
                     pos = params["R0.13_Encoder_Feedback_Value"]
                     vel = params["R0.00_Motor_Speed"]
                     torque = calculate_torque(params["R0.06_Current_Torque"])
+
+                    error_code = params["R3.0"]
+                    print(error_code)
 
                     config.shared_data[f"slave-{slave_idx}"] = {
                         "velocity": vel,
