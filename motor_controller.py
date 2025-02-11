@@ -4,6 +4,11 @@ from motor_manager import MotorManager
 
 motor_manager = None  # Burada global tanımlıyoruz, try/except ile init edeceğiz.
 
+# ------------- [YENİ EKLENDİ] -------------
+# Slider'dan gelen değerleri tutacağımız tampon sözlük
+pending_slider_values = {}  # {motor_idx: en_son_slider_degeri}
+# ------------------------------------------
+
 def init_motor_manager():
     global motor_manager
     try:
@@ -44,22 +49,63 @@ def start_config():
                 except Exception as e:
                     print(f"Error configuring motor: {e}")
 
+# -------------------------------------------------------------------------
+# Aşağıdaki fonksiyonda "SLIDER" ile ilgili kısım değiştirilmiştir.
+# Eskiden burada anında set_position/set_velocity çağrısı vardı.
+# Artık sadece pending_slider_values sözlüğüne değer kaydediyoruz.
+# -------------------------------------------------------------------------
 def on_motor_slider_change(slider_value, idx):
     if not config.config_complete or motor_manager is None:
         return
 
     slider_value_int = int(slider_value)
     if idx in [0, 2, 4, 6]:  # position motor
-        config.logs[str(idx)].insert("end", f"Position value of {slider_value_int} has been sent\n")
+        # Log penceresine, "gönderildi" yerine "queued" benzeri ifade yazıyoruz
+        config.logs[str(idx)].insert("end", f"Position value of {slider_value_int} queued\n")
         config.logs[str(idx)].see("end")
-        motor_manager.set_position(idx, slider_value_int)
+        # Anında göndermek yerine tampon sözlüğüne yaz
+        pending_slider_values[idx] = slider_value_int
+
     else:  # velocity motor
-        config.logs[str(idx)].insert("end", f"Velocity value of {slider_value_int} has been sent\n")
+        config.logs[str(idx)].insert("end", f"Velocity value of {slider_value_int} queued\n")
         config.logs[str(idx)].see("end")
-        motor_manager.set_velocity(idx, slider_value_int)
+        # Anında göndermek yerine tampon sözlüğüne yaz
+        pending_slider_values[idx] = slider_value_int
+
+# -------------------------------------------------------------------------
+# YENİ EKLENEN Fonksiyon:
+# Pending (tampon) sözlükte biriken slider değerlerini motorlara gerçekten gönderen kısım.
+# -------------------------------------------------------------------------
+def update_motors():
+    """
+    Belirli aralıklarla (ör. 100ms) çağrılıp pending_slider_values içindeki
+    değerleri motor sürücüye gönderir.
+    """
+    if config.config_complete and motor_manager is not None:
+        for idx, val in list(pending_slider_values.items()):
+            # Pozisyon motoru mu, hız motoru mu bakıyoruz
+            if idx in [0, 2, 4, 6]:
+                # Orijinal koddaki gibi 0 veya 6 ise negatif çevirme
+                send_val = -val if idx in [0, 6] else val
+                motor_manager.set_position(idx, send_val)
+
+                # Gönderildiğini de log'a yazabiliriz:
+                config.logs[str(idx)].insert(
+                    "end", f"Position value {send_val} has been sent to motor {idx}\n"
+                )
+                config.logs[str(idx)].see("end")
+            else:
+                motor_manager.set_velocity(idx, val)
+                config.logs[str(idx)].insert(
+                    "end", f"Velocity value {val} has been sent to motor {idx}\n"
+                )
+                config.logs[str(idx)].see("end")
+
+        # Tüm tampon temizlenir
+        pending_slider_values.clear()
 
 def poll_data(root):
-    # poll_data fonksiyonu, her 100 ms'de bir verileri okuyacak
+    # poll_data fonksiyonu, her 100 ms'de bir verileri okuyacak (ESKİ HALİYLE KALDI)
     if config.config_complete and motor_manager is not None:
         for motor_type in ["velocity", "position"]:
             for i in range(1,5):

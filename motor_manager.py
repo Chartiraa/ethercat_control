@@ -21,6 +21,7 @@ class MotorManager:
     def initialize(self):
         if self.master.config_init() > 0:
             self.slaves = self.master.slaves
+            #self.slaves.insert(1, self.slaves[6])
             print(f"Found {len(self.slaves)} slave(s).")
             if len(self.slaves) < 1:
                 raise Exception("No slaves found.")
@@ -77,13 +78,11 @@ class MotorManager:
             if (slave_index in reverse_motors):
                 target_position = target_position * -1
             slave.sdo_write(0x607A, 0, bytes(ctypes.c_int32(target_position)))
-            time.sleep(0.05)
             # Yeni hedefin işlenmesi için kontrol kelimesi güncellemesi gerekebilir.
             # Genellikle position modda 0x6040'da "New set-point" bitini set edip reset etmek gerekir.
             # Bu genellikle 0x6040 kontrol kelimesindeki bitleri kullanarak yapılır.
             # Burada basitçe tekrar enable operation komutu gönderiyoruz:
             slave.sdo_write(0x6040, 0, bytes(ctypes.c_uint16(0x001F))) 
-            time.sleep(0.05)
             # Tekrar esas konuma dön
             slave.sdo_write(0x6040, 0, bytes(ctypes.c_uint16(0x000F))) 
             print(f"Set position of slave {slave_index} to {target_position}.")

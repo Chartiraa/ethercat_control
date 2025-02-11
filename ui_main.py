@@ -80,6 +80,7 @@ def create_main_window():
             sub_frame_velocity,
             from_=-3000, to=3000,
             orientation="horizontal",
+            # Slider değiştiğinde on_motor_slider_change fonksiyonunu çağıracağız
             command=lambda value, idx=config.motor_num[f"velocity_{i+1}"]: motor_controller.on_motor_slider_change(value, idx)
         )
         config.motor_sliders[f"velocity_motor_{i+1}"].pack(fill=ctk.X, padx=5, pady=5)
@@ -151,8 +152,9 @@ def create_main_window():
 
         config.motor_sliders[f"position_motor_{i+1}"] = ctk.CTkSlider(
             sub_frame_position,
-            from_=-50000, to=50000,
+            from_=-500000, to=500000,
             orientation="horizontal",
+            # Slider değiştiğinde on_motor_slider_change fonksiyonunu çağıracağız
             command=lambda value, idx=config.motor_num[f"position_{i+1}"]: motor_controller.on_motor_slider_change(value, idx)
         )
         config.motor_sliders[f"position_motor_{i+1}"].pack(fill=ctk.X, padx=5, pady=5)
@@ -203,6 +205,9 @@ def create_main_window():
                 val.set(value)
                 motor_controller.on_motor_slider_change(value, config.slider_ids[key])
                 if motor_controller.motor_manager:
+                    # Burada doğrudan anında gönderim var;
+                    # isterseniz yine tampon yapısına döndürebilirsiniz,
+                    # ancak talep dışı olduğu için aynen koruyoruz.
                     motor_controller.motor_manager.set_velocity(config.slider_ids[key], value)
 
     def on_all_position_slider_change(value):
@@ -234,7 +239,7 @@ def create_main_window():
     slider_position_label.grid(row=1, column=0, padx=5, pady=2)
 
     slider_position = ctk.CTkSlider(
-        bottom_frame, from_=-50000, to=50000,
+        bottom_frame, from_=-500000, to=500000,
         orientation="horizontal", command=on_all_position_slider_change
     )
     slider_position.grid(row=1, column=1, padx=5, pady=2, sticky="ew")
@@ -247,7 +252,16 @@ def create_main_window():
 
     bottom_frame.columnconfigure(1, weight=1)
 
-    # poll_data'yı başlat
+    # poll_data'yı başlat (eski haliyle)
     motor_controller.poll_data(root)
+
+    # ---------------------------------------------------
+    # [YENİ] update_motors fonksiyonunu da periyodik çağırıyoruz:
+    # ---------------------------------------------------
+    def schedule_update_motors():
+        motor_controller.update_motors()
+        root.after(100, schedule_update_motors)  # 100 ms'de bir tamponu gönder
+
+    schedule_update_motors()
 
     return root  # Fonksiyon, root’u döndürüyor
