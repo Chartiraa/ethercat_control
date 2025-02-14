@@ -4,8 +4,9 @@ import time
 import struct
 
 
-
 reverse_motors = [0, 1, 2, 3]
+motor_rotation_for_one_degree = 27.777777778
+#motor_rotation_for_one_degree = 27.777777778 * 138.53
 
 class MotorManager:
     def __init__(self, interface_name):
@@ -74,6 +75,18 @@ class MotorManager:
         """Hedef pozisyonu (Target Position) ayarlar."""
         try:
             slave = self.slaves[slave_index]
+            if target_position < -180:
+                print("POSITION LIMIT EXEECED SEND A VALUE BETWEEN -180 and +180!")
+                raise
+            if target_position > 180:
+                print("POSITION LIMIT EXEECED SEND A VALUE BETWEEN -180 and +180!")
+                raise
+
+
+            target_position = target_position * motor_rotation_for_one_degree
+            target_position = int(round(target_position))
+
+
             # Hedef pozisyonu yaz
             if (slave_index in reverse_motors):
                 target_position = target_position * -1
@@ -106,10 +119,20 @@ class MotorManager:
 
     def set_velocity(self, slave_index, target_velocity):
         try:
+            
             slave = self.slaves[slave_index]
+            if target_velocity > 500:
+                print("Too fast send value between -500 and +500")
+                raise
+            if target_velocity < -500:
+                print("Too fast send value between -500 and +500")
+                raise
+           
+           
             if (slave_index in reverse_motors):
                 target_velocity = target_velocity * -1
                 slave.sdo_write(0x60FF, 0, bytes(ctypes.c_int32(target_velocity)))  # Target velocity
+            
             
             slave.sdo_write(0x60FF, 0, bytes(ctypes.c_int32(target_velocity)))  # Target velocity
 

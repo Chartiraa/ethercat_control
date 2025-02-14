@@ -72,18 +72,35 @@ def create_main_window():
             sub_frame_velocity, 
             text="UNCONFIGURED",
             font=("Arial", 12, "bold"),
+
             text_color="red"
         )
         config.config_labels[f"velocity_config_label_{i+1}"].pack(pady=2)
 
         config.motor_sliders[f"velocity_motor_{i+1}"] = ctk.CTkSlider(
             sub_frame_velocity,
-            from_=-3000, to=3000,
+            from_=-500, to=500,
             orientation="horizontal",
-            # Slider değiştiğinde on_motor_slider_change fonksiyonunu çağıracağız
-            command=lambda value, idx=config.motor_num[f"velocity_{i+1}"]: motor_controller.on_motor_slider_change(value, idx)
+            command=lambda value, idx=config.motor_num[f"velocity_{i+1}"], i=i: (
+                motor_controller.on_motor_slider_change(value, idx),
+                config.info_labels[f"velocity_slider_value_{i+1}"].configure(text=f"{value:.1f}")
+            )
         )
         config.motor_sliders[f"velocity_motor_{i+1}"].pack(fill=ctk.X, padx=5, pady=5)
+
+        # Add value label for velocity slider
+        velocity_value_frame = ctk.CTkFrame(sub_frame_velocity, fg_color="transparent")
+        velocity_value_frame.pack(fill=ctk.X, padx=5)
+        velocity_value_frame.columnconfigure(0, weight=1)
+
+        config.info_labels[f"velocity_slider_value_{i+1}"] = ctk.CTkLabel(
+            velocity_value_frame,
+            
+            text="0.0",
+            font=("Arial", 12, "bold"),
+            width=80
+        )
+        config.info_labels[f"velocity_slider_value_{i+1}"].pack(side=ctk.RIGHT, padx=5)
 
         v_id = config.motor_num[f"velocity_{i+1}"]
         config.slider_ids[f"velocity_motor_{i+1}"] = v_id
@@ -152,12 +169,27 @@ def create_main_window():
 
         config.motor_sliders[f"position_motor_{i+1}"] = ctk.CTkSlider(
             sub_frame_position,
-            from_=-500000, to=500000,
+            from_=-180, to=180,
             orientation="horizontal",
-            # Slider değiştiğinde on_motor_slider_change fonksiyonunu çağıracağız
-            command=lambda value, idx=config.motor_num[f"position_{i+1}"]: motor_controller.on_motor_slider_change(value, idx)
+            command=lambda value, idx=config.motor_num[f"position_{i+1}"], i=i: (
+                motor_controller.on_motor_slider_change(value, idx),
+                config.info_labels[f"position_slider_value_{i+1}"].configure(text=f"{value:.1f}")
+            )
         )
         config.motor_sliders[f"position_motor_{i+1}"].pack(fill=ctk.X, padx=5, pady=5)
+
+        # Add value label for position slider
+        position_value_frame = ctk.CTkFrame(sub_frame_position, fg_color="transparent")
+        position_value_frame.pack(fill=ctk.X, padx=5)
+        position_value_frame.columnconfigure(0, weight=1)
+
+        config.info_labels[f"position_slider_value_{i+1}"] = ctk.CTkLabel(
+            position_value_frame,
+            text="0.0",
+            font=("Arial", 12, "bold"),
+            width=80
+        )
+        config.info_labels[f"position_slider_value_{i+1}"].pack(side=ctk.RIGHT, padx=5)
 
         p_id = config.motor_num[f"position_{i+1}"]
         config.slider_ids[f"position_motor_{i+1}"] = p_id
@@ -195,11 +227,17 @@ def create_main_window():
         )
         config.logs[f"{p_id}"].pack(fill=ctk.BOTH, expand=True, padx=5, pady=(0,5))
 
-    # Alt kısım
+    # Bottom frame configuration
     bottom_frame = ctk.CTkFrame(root, corner_radius=10)
     bottom_frame.pack(fill=ctk.X, padx=10, pady=10)
+    
+    # Configure columns with proper weights
+    bottom_frame.columnconfigure(1, weight=3)  # Slider column gets more space
+    bottom_frame.columnconfigure(2, weight=1)  # Value label column
+    bottom_frame.columnconfigure(3, weight=1)  # Button column
 
     def on_all_velocity_slider_change(value):
+        velocity_value_label.configure(text=f"{value:.1f}")
         for key, val in config.motor_sliders.items():
             if key.startswith("velocity"):
                 val.set(value)
@@ -211,6 +249,7 @@ def create_main_window():
                     motor_controller.motor_manager.set_velocity(config.slider_ids[key], value)
 
     def on_all_position_slider_change(value):
+        position_value_label.configure(text=f"{value:.1f}")
         for key, val in config.motor_sliders.items():
             if key.startswith("position"):
                 val.set(value)
@@ -230,27 +269,33 @@ def create_main_window():
     slider_velocity_label.grid(row=0, column=0, padx=5, pady=2)
 
     slider_velocity = ctk.CTkSlider(
-        bottom_frame, from_=-3000, to=3000,
+        bottom_frame, from_=-500, to=500,
         orientation="horizontal", command=on_all_velocity_slider_change
     )
     slider_velocity.grid(row=0, column=1, padx=5, pady=2, sticky="ew")
+
+    # Make value label more visible
+    velocity_value_label = ctk.CTkLabel(bottom_frame, text="0.0", font=("Arial", 12, "bold"), width=80)
+    velocity_value_label.grid(row=0, column=2, padx=5, pady=2, sticky="w")
 
     slider_position_label = ctk.CTkLabel(bottom_frame, text="ALL POSITION", font=("Arial", 12, "bold"))
     slider_position_label.grid(row=1, column=0, padx=5, pady=2)
 
     slider_position = ctk.CTkSlider(
-        bottom_frame, from_=-500000, to=500000,
+        bottom_frame, from_=-180, to=180,
         orientation="horizontal", command=on_all_position_slider_change
     )
     slider_position.grid(row=1, column=1, padx=5, pady=2, sticky="ew")
 
+    # Make value label more visible
+    position_value_label = ctk.CTkLabel(bottom_frame, text="0.0", font=("Arial", 12, "bold"), width=80)
+    position_value_label.grid(row=1, column=2, padx=5, pady=2, sticky="w")
+
     start_btn = ctk.CTkButton(bottom_frame, text="Start", font=("Arial", 12, "bold"), command=motor_controller.start_config)
-    start_btn.grid(row=0, column=2, padx=5, pady=2)
+    start_btn.grid(row=0, column=3, padx=5, pady=2)
 
     stop_btn = ctk.CTkButton(bottom_frame, text="Stop", font=("Arial", 12, "bold"), command=on_stop)
-    stop_btn.grid(row=1, column=2, padx=5, pady=2)
-
-    bottom_frame.columnconfigure(1, weight=1)
+    stop_btn.grid(row=1, column=3, padx=5, pady=2)
 
     # poll_data'yı başlat (eski haliyle)
     motor_controller.poll_data(root)
@@ -264,4 +309,4 @@ def create_main_window():
 
     schedule_update_motors()
 
-    return root  # Fonksiyon, root’u döndürüyor
+    return root  # Fonksiyon, root'u döndürüyor
